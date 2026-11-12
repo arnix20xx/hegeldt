@@ -84,7 +84,15 @@ fn http_get(url: &str) -> Option<String> {
 /// Sends an SSDP M-SEARCH and returns the Hegel devices that answered within `timeout`.
 /// NETWORK ACCESS — see module docs.
 pub fn search(timeout: Duration) -> std::io::Result<Vec<DiscoveredDevice>> {
-    let sock = UdpSocket::bind(SocketAddr::from((Ipv4Addr::UNSPECIFIED, 0)))?;
+    // Bind to the local address of the default route so multicast leaves via the right
+    // interface (binding to 0.0.0.0 fails with "No route to host" on macOS). Connecting a
+    // UDP socket sends no packets; it only selects the route.
+    let local_ip = {
+        let probe = UdpSocket::bind(SocketAddr::from((Ipv4Addr::UNSPECIFIED, 0)))?;
+        probe.connect("8.8.8.8:80")?;
+        probe.local_addr()?.ip()
+    };
+    let sock = UdpSocket::bind(SocketAddr::new(local_ip, 0))?;
     sock.set_read_timeout(Some(Duration::from_millis(300)))?;
     sock.send_to(m_search_request().as_bytes(), SSDP_ADDR)?;
 

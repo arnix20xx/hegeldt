@@ -59,16 +59,6 @@ pub struct RemoteApp {
     pub focus: FocusHandle,
 }
 
-/// Safety gate: until the owner has said YES, only loopback hosts are allowed.
-/// Set HEGELDT_LIVE=1 to talk to a real amplifier on the LAN.
-fn host_allowed(host: &str) -> bool {
-    let h = host.trim();
-    h == "localhost"
-        || h == "::1"
-        || h.starts_with("127.")
-        || std::env::var("HEGELDT_LIVE").is_ok_and(|v| v == "1")
-}
-
 /// Splits "host" or "host:port".
 fn split_host_port(s: &str) -> (String, u16) {
     let s = s.trim();
@@ -150,13 +140,6 @@ impl RemoteApp {
             cx.notify();
             return;
         };
-        if !host_allowed(&host) {
-            self.message = Some(format!(
-                "Refusing to connect to {host}: only loopback hosts are allowed for now"
-            ));
-            cx.notify();
-            return;
-        }
         let (host, port) = split_host_port(&host);
         self.message = Some(format!("Connecting to {host}…"));
         let (conn, mut rx) = AmpConnection::connect(host, port);

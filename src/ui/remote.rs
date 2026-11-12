@@ -99,7 +99,15 @@ impl RemoteApp {
 
         // --- controls (only when powered on) ---
         if self.power && self.connected {
-            let mut list = div().flex().flex_col().gap_1().flex_1().pr_2();
+            let mut list = div()
+                .id("source-list")
+                .flex()
+                .flex_col()
+                .gap_1()
+                .flex_1()
+                .min_h_0()
+                .overflow_y_scroll()
+                .pr_2();
             for (n, s) in sources.iter().filter(|s| s.enabled).enumerate() {
                 let id = s.id;
                 let selected = self.input == Some(id);
@@ -145,6 +153,7 @@ impl RemoteApp {
                 div()
                     .flex()
                     .flex_1()
+                    .min_h_0()
                     .px_4()
                     .py_4()
                     .gap_4()
