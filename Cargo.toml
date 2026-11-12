@@ -1,0 +1,30 @@
+[package]
+name = "hegeldt"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "hegeldt"
+path = "src/lib.rs"
+
+[[bin]]
+name = "hegeldt"
+path = "src/main.rs"
+
+[[bin]]
+name = "mock_amp"
+path = "src/bin/mock_amp.rs"
+
+[dependencies]
+gpui = { git = "https://github.com/zed-industries/zed", rev = "1e9987dcca966d116158a12d7e75e5b6732f14ac" }
+gpui_platform = { git = "https://github.com/zed-industries/zed", rev = "1e9987dcca966d116158a12d7e75e5b6732f14ac", features = ["font-kit"] }
+anyhow = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+dirs = "6"
+futures = "0.3"
+log = "0.4"
+
+[patch.crates-io]
+async-task = { git = "https://github.com/smol-rs/async-task.git", rev = "b4486cd71e4e94fbda54ce6302444de14f4d190e" }
+calloop = { git = "https://github.com/zed-industries/calloop" }
