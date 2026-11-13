@@ -163,7 +163,11 @@ mod tests {
         c.save_to(&p).unwrap();
         assert!(Config::load_from(&p).menu_bar);
         // A config written before the setting existed still loads, with the default.
-        std::fs::write(&p, r#"{"host":"192.168.1.50","model":"H390","max_volume":50}"#).unwrap();
+        std::fs::write(
+            &p,
+            r#"{"host":"192.168.1.50","model":"H390","max_volume":50}"#,
+        )
+        .unwrap();
         let old = Config::load_from(&p);
         assert_eq!(old.host.as_deref(), Some("192.168.1.50"));
         assert_eq!(old.max_volume, 50);
