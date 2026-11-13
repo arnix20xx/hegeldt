@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Hegel Remote app icon: a volume knob in the Hegel dark palette. -->
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="#222222"/>
+  <g transform="translate(512 512)" fill="none" stroke-linecap="round">
+    <!-- level scale: 270 degree arc, lit part in foreground colour -->
+    <path d="M -233.3 233.3 A 330 330 0 1 1 233.3 233.3" stroke="#444444" stroke-width="30"/>
+    <path d="M -233.3 233.3 A 330 330 0 0 1 98.6 -314.9" stroke="#F1F1F2" stroke-width="30"/>
+    <!-- knob -->
+    <circle r="215" fill="#333333" stroke="#555555" stroke-width="10"/>
+    <circle r="185" fill="#2a2a2a"/>
+    <!-- indicator pointing at the end of the lit scale -->
+    <line x1="31" y1="-95" x2="50" y2="-152" stroke="#F1F1F2" stroke-width="30"/>
+  </g>
+</svg>

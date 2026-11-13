@@ -4,11 +4,12 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use futures::StreamExt;
-use gpui::{Context, FocusHandle, KeyDownEvent, Task, Window, div, prelude::*};
+use gpui::{Context, FocusHandle, KeyDownEvent, Task, Window, div, prelude::*, px, size};
 
 use hegeldt::config::Config;
 use hegeldt::connection::{AmpConnection, AmpEvent};
-use hegeldt::model::InputSource;
+use hegeldt::discovery::{self, DiscoveredDevice};
+use hegeldt::model::{AmpModel, InputSource};
 use hegeldt::protocol::{AMP_PORT, Command, Param};
 
 use crate::ui::theme;
@@ -17,6 +18,19 @@ use crate::ui::theme;
 pub enum Screen {
     Remote,
     Settings,
+}
+
+/// Window sizes (logical px) for the two screens.
+const REMOTE_SIZE: (f32, f32) = (380., 370.);
+const SETTINGS_SIZE: (f32, f32) = (380., 640.);
+
+/// Progress of an SSDP search started from the settings screen.
+#[derive(Clone, PartialEq)]
+pub enum SearchState {
+    Idle,
+    Searching,
+    Found(Vec<DiscoveredDevice>),
+    Failed(String),
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -44,6 +58,15 @@ pub struct RemoteApp {
     pub input: Option<u8>,
     pub message: Option<String>,
 
+    // remote screen
+    pub dropdown_open: bool,
+
+    // amplifier search (settings)
+    pub search: SearchState,
+    /// Host of the device picked from the search results, for highlighting + feedback.
+    pub picked: Option<String>,
+    search_task: Option<Task<()>>,
+
     // plumbing
     conn: Option<AmpConnection>,
     event_task: Option<Task<()>>,
@@ -57,6 +80,13 @@ pub struct RemoteApp {
     pub buffer: String,
 
     pub focus: FocusHandle,
+}
+
+/// `$HEGELDT_CONFIG` if set, else the default location.
+pub fn config_path() -> Option<PathBuf> {
+    std::env::var_os("HEGELDT_CONFIG")
+        .map(PathBuf::from)
+        .or_else(Config::default_path)
 }
 
 /// Splits "host" or "host:port".
@@ -73,9 +103,7 @@ fn split_host_port(s: &str) -> (String, u16) {
 
 impl RemoteApp {
     pub fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
-        let config_path = std::env::var_os("HEGELDT_CONFIG")
-            .map(PathBuf::from)
-            .or_else(Config::default_path);
+        let config_path = config_path();
         let config = config_path
             .as_deref()
             .map(Config::load_from)
@@ -97,6 +125,10 @@ impl RemoteApp {
             volume: 0,
             input: None,
             message: None,
+            dropdown_open: false,
+            search: SearchState::Idle,
+            picked: None,
+            search_task: None,
             conn: None,
             event_task: None,
             reconnect_task: None,
@@ -274,18 +306,64 @@ impl RemoteApp {
 
     // ---- settings -----------------------------------------------------
 
-    pub fn open_settings(&mut self, cx: &mut Context<Self>) {
+    pub fn open_settings(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.screen = Screen::Settings;
+        self.dropdown_open = false;
         self.reconnect_task = None;
         self.stop_hold();
+        window.resize(size(px(SETTINGS_SIZE.0), px(SETTINGS_SIZE.1)));
         cx.notify();
     }
 
-    pub fn close_settings(&mut self, cx: &mut Context<Self>) {
+    pub fn close_settings(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.commit_edit();
         self.screen = Screen::Remote;
         self.save();
+        window.resize(size(px(REMOTE_SIZE.0), px(REMOTE_SIZE.1)));
         self.connect(cx);
+    }
+
+    pub fn toggle_menu_bar(&mut self, cx: &mut Context<Self>) {
+        self.config.menu_bar = !self.config.menu_bar;
+        let on = self.config.menu_bar;
+        // Must run outside the current GPUI update, see `menubar` docs.
+        cx.spawn(async move |_, _| crate::menubar::set_enabled(on))
+            .detach();
+        self.save();
+    }
+
+    // ---- amplifier search ---------------------------------------------
+
+    /// Runs SSDP discovery on a background thread and shows the result in the settings.
+    pub fn start_search(&mut self, cx: &mut Context<Self>) {
+        if self.search == SearchState::Searching {
+            return;
+        }
+        self.search = SearchState::Searching;
+        self.picked = None;
+        let job = cx
+            .background_executor()
+            .spawn(async move { discovery::search(Duration::from_secs(4)) });
+        self.search_task = Some(cx.spawn(async move |this, cx| {
+            let result = job.await;
+            this.update(cx, |t, cx| {
+                t.search = match result {
+                    Ok(devs) => SearchState::Found(devs),
+                    Err(e) => SearchState::Failed(format!("Search failed: {e}")),
+                };
+                cx.notify();
+            })
+            .ok();
+        }));
+        cx.notify();
+    }
+
+    /// Uses a search result: sets the host (and the model if it is recognised) and saves.
+    pub fn pick_device(&mut self, dev: &DiscoveredDevice) {
+        self.commit_edit();
+        self.config.apply_device(dev);
+        self.picked = Some(dev.host.clone());
+        self.save();
     }
 
     pub fn begin_edit(&mut self, field: Field) {
@@ -333,7 +411,7 @@ impl RemoteApp {
         self.save();
     }
 
-    pub fn set_model(&mut self, model: hegeldt::model::AmpModel) {
+    pub fn set_model(&mut self, model: AmpModel) {
         self.config.model = model;
         self.save();
     }
@@ -345,7 +423,7 @@ impl RemoteApp {
 
     // ---- keyboard -----------------------------------------------------
 
-    fn on_key(&mut self, ev: &KeyDownEvent, _w: &mut Window, cx: &mut Context<Self>) {
+    fn on_key(&mut self, ev: &KeyDownEvent, w: &mut Window, cx: &mut Context<Self>) {
         let ks = &ev.keystroke;
         let key = ks.key.as_str();
 
@@ -353,9 +431,9 @@ impl RemoteApp {
             match key {
                 "," => {
                     if self.screen == Screen::Remote {
-                        self.open_settings(cx);
+                        self.open_settings(w, cx);
                     } else {
-                        self.close_settings(cx);
+                        self.close_settings(w, cx);
                     }
                 }
                 "v" if self.editing.is_some() => {
@@ -392,6 +470,7 @@ impl RemoteApp {
             return;
         }
         match key {
+            "escape" => self.dropdown_open = false,
             "up" => self.volume_step(Dir::Up),
             "down" => self.volume_step(Dir::Down),
             "m" => self.toggle_mute(),
@@ -405,17 +484,19 @@ impl RemoteApp {
                     .nth(n.wrapping_sub(1))
                 {
                     self.select_input(s.id);
+                    self.dropdown_open = false;
                 }
             }
             _ => {}
         }
+        cx.notify();
     }
 }
 
 impl Render for RemoteApp {
-    fn render(&mut self, _w: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, w: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let body = match self.screen {
-            Screen::Remote => self.render_remote(cx).into_any_element(),
+            Screen::Remote => self.render_remote(w, cx).into_any_element(),
             Screen::Settings => self.render_settings(cx).into_any_element(),
         };
         div()

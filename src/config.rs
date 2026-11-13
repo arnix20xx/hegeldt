@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
+use crate::discovery::DiscoveredDevice;
 use crate::model::{AmpModel, InputSource};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -11,6 +12,8 @@ pub struct Config {
     pub host: Option<String>,
     pub model: AmpModel,
     pub max_volume: u8,
+    /// Keep the app in the macOS menu bar (status item); closing the window then hides it.
+    pub menu_bar: bool,
     /// Saved per-model input lists (labels / enabled flags).
     pub inputs: HashMap<AmpModel, Vec<InputSource>>,
 }
@@ -21,6 +24,7 @@ impl Default for Config {
             host: None,
             model: AmpModel::H390,
             max_volume: 60,
+            menu_bar: false,
             inputs: HashMap::new(),
         }
     }
@@ -60,6 +64,14 @@ impl Config {
         Ok(())
     }
 
+    /// Uses a discovered amplifier: its IP becomes the host, and the model is set if recognised.
+    pub fn apply_device(&mut self, dev: &DiscoveredDevice) {
+        self.host = Some(dev.host.clone());
+        if let Some(m) = AmpModel::guess_from_model_name(&dev.model) {
+            self.model = m;
+        }
+    }
+
     /// Default inputs for the model with saved labels / enabled flags merged over them.
     pub fn inputs_for(&self, model: AmpModel) -> Vec<InputSource> {
         let saved = self.inputs.get(&model);
@@ -93,6 +105,7 @@ mod tests {
         assert_eq!(c.host, None);
         assert_eq!(c.model, AmpModel::H390);
         assert_eq!(c.max_volume, 60);
+        assert!(!c.menu_bar);
     }
 
     #[test]
@@ -138,5 +151,47 @@ mod tests {
         assert_eq!(c.host.as_deref(), Some("127.0.0.1"));
         assert_eq!(c.max_volume, 60);
         std::fs::remove_dir_all(p.parent().unwrap().parent().unwrap()).unwrap();
+    }
+
+    #[test]
+    fn menu_bar_roundtrip_and_old_files_load() {
+        let p = tmp("menubar");
+        let c = Config {
+            menu_bar: true,
+            ..Default::default()
+        };
+        c.save_to(&p).unwrap();
+        assert!(Config::load_from(&p).menu_bar);
+        // A config written before the setting existed still loads, with the default.
+        std::fs::write(&p, r#"{"host":"10.0.0.33","model":"H390","max_volume":50}"#).unwrap();
+        let old = Config::load_from(&p);
+        assert_eq!(old.host.as_deref(), Some("10.0.0.33"));
+        assert_eq!(old.max_volume, 50);
+        assert!(!old.menu_bar);
+        std::fs::remove_dir_all(p.parent().unwrap().parent().unwrap()).unwrap();
+    }
+
+    #[test]
+    fn apply_device_sets_host_and_known_model() {
+        let mut c = Config::default();
+        let mut d = DiscoveredDevice {
+            friendly_name: "H390_D36ED4".into(),
+            host: "10.0.0.33".into(),
+            model: "H390".into(),
+            manufacturer: "Hegel".into(),
+        };
+        c.model = AmpModel::H95;
+        c.apply_device(&d);
+        assert_eq!(c.host.as_deref(), Some("10.0.0.33"));
+        assert_eq!(c.model, AmpModel::H390);
+        d.model = "Mystery".into();
+        d.host = "10.0.0.5".into();
+        c.apply_device(&d);
+        assert_eq!(c.host.as_deref(), Some("10.0.0.5"));
+        assert_eq!(
+            c.model,
+            AmpModel::H390,
+            "unknown model leaves the setting alone"
+        );
     }
 }

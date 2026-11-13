@@ -1,8 +1,7 @@
 //! SSDP discovery of Hegel amplifiers (port of SsdpDiscovery.kt).
 //!
-//! NOTE: `search()` sends multicast UDP on the LAN and fetches device descriptions over HTTP.
-//! It must not be called until the owner has explicitly approved talking to the network
-//! amplifier. The UI does not call it yet; only the pure parsing helpers are unit-tested.
+//! `search()` sends multicast UDP on the LAN and fetches device descriptions over HTTP. It is
+//! used by the "Search for amplifiers" button in the settings (run on a background thread).
 
 use std::collections::HashMap;
 use std::io::{Read, Write};
@@ -82,7 +81,7 @@ fn http_get(url: &str) -> Option<String> {
 }
 
 /// Sends an SSDP M-SEARCH and returns the Hegel devices that answered within `timeout`.
-/// NETWORK ACCESS — see module docs.
+/// Network access: multicast UDP plus HTTP GETs to the responders.
 pub fn search(timeout: Duration) -> std::io::Result<Vec<DiscoveredDevice>> {
     // Bind to the local address of the default route so multicast leaves via the right
     // interface (binding to 0.0.0.0 fails with "No route to host" on macOS). Connecting a
