@@ -8,6 +8,7 @@ resolver = "3"
 name = "hegeldt"
 version = "0.1.0"
 edition = "2024"
+license = "MIT"
 
 [[bin]]
 name = "hegeldt"

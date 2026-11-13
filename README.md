@@ -164,3 +164,7 @@ the per-model input labels.
 | Cmd-Q / Ctrl-Q | Quit |
 
 (Cmd on macOS, Ctrl on Linux and Windows.)
+
+## License
+
+MIT, see [LICENSE](LICENSE). GPUI and the other dependencies have their own licenses.

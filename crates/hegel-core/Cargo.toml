@@ -2,6 +2,7 @@
 name = "hegel-core"
 version = "0.1.0"
 edition = "2024"
+license = "MIT"
 description = "Protocol, model, connection, config, discovery and mock for Hegel amplifiers (no GUI dependencies)"
 
 [lib]
