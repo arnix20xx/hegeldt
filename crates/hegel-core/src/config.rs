@@ -31,7 +31,7 @@ impl Default for Config {
 }
 
 impl Config {
-    /// `~/Library/Application Support/hegeldt/config.json` on macOS.
+    /// Platform config dir: `~/Library/Application Support/hegeldt/config.json` on macOS, `~/.config/hegeldt/` on Linux, `%APPDATA%\hegeldt\` on Windows.
     pub fn default_path() -> Option<PathBuf> {
         dirs::config_dir().map(|d| d.join("hegeldt").join("config.json"))
     }

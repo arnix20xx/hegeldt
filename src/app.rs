@@ -6,11 +6,11 @@ use std::time::Duration;
 use futures::StreamExt;
 use gpui::{Context, FocusHandle, KeyDownEvent, Task, Window, div, prelude::*, px, size};
 
-use hegeldt::config::Config;
-use hegeldt::connection::{AmpConnection, AmpEvent};
-use hegeldt::discovery::{self, DiscoveredDevice};
-use hegeldt::model::{AmpModel, InputSource};
-use hegeldt::protocol::{AMP_PORT, Command, Param};
+use hegel_core::config::Config;
+use hegel_core::connection::{AmpConnection, AmpEvent};
+use hegel_core::discovery::{self, DiscoveredDevice};
+use hegel_core::model::{AmpModel, InputSource};
+use hegel_core::protocol::{AMP_PORT, Command, Param};
 
 use crate::ui::theme;
 
@@ -427,7 +427,8 @@ impl RemoteApp {
         let ks = &ev.keystroke;
         let key = ks.key.as_str();
 
-        if ks.modifiers.platform {
+        // Cmd on macOS, Ctrl elsewhere.
+        if ks.modifiers.secondary() {
             match key {
                 "," => {
                     if self.screen == Screen::Remote {

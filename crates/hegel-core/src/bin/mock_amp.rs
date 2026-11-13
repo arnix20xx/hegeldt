@@ -1,5 +1,5 @@
-use hegeldt::mock::MockServer;
-use hegeldt::protocol::AMP_PORT;
+use hegel_core::mock::MockServer;
+use hegel_core::protocol::AMP_PORT;
 
 fn main() -> anyhow::Result<()> {
     let port = match std::env::args().nth(1) {

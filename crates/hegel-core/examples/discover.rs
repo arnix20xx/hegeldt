@@ -2,7 +2,7 @@
 use std::time::Duration;
 
 fn main() {
-    match hegeldt::discovery::search(Duration::from_secs(5)) {
+    match hegel_core::discovery::search(Duration::from_secs(5)) {
         Ok(devs) if devs.is_empty() => println!("no Hegel devices found"),
         Ok(devs) => devs.iter().for_each(|d| println!("{d:?}")),
         Err(e) => eprintln!("discovery failed: {e}"),

@@ -1,5 +1,5 @@
 use gpui::{Context, div, prelude::*, px};
-use hegeldt::model::AmpModel;
+use hegel_core::model::AmpModel;
 
 use super::{theme, widgets};
 use crate::app::{Field, RemoteApp, SearchState};
@@ -237,26 +237,25 @@ impl RemoteApp {
             .child(self.render_search(cx))
             .child(widgets::section_title("AMPLIFIER TYPE"))
             .child(models)
-            .child(widgets::section_title("MENU BAR"))
-            .child(
-                div()
-                    .flex()
-                    .items_center()
-                    .gap_3()
-                    .child(
-                        widgets::toggle("menu-bar", self.config.menu_bar).on_click(cx.listener(
-                            |t, _, _, cx| {
+            .when(crate::menubar::SUPPORTED, |d| {
+                d.child(widgets::section_title("MENU BAR")).child(
+                    div()
+                        .flex()
+                        .items_center()
+                        .gap_3()
+                        .child(widgets::toggle("menu-bar", self.config.menu_bar).on_click(
+                            cx.listener(|t, _, _, cx| {
                                 t.toggle_menu_bar(cx);
                                 cx.notify();
-                            },
-                        )),
-                    )
-                    .child(
-                        div()
-                            .text_sm()
-                            .child("Show in menu bar (closing the window hides it)"),
-                    ),
-            )
+                            }),
+                        ))
+                        .child(
+                            div()
+                                .text_sm()
+                                .child("Show in menu bar (closing the window hides it)"),
+                        ),
+                )
+            })
             .child(widgets::section_title("MAX VOLUME"))
             .child(stepper)
             .child(widgets::section_title("SOURCES (toggle + label)"))

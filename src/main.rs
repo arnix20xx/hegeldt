@@ -1,3 +1,5 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 mod app;
 mod assets;
 mod menubar;
@@ -8,7 +10,7 @@ use gpui::{
     size,
 };
 use gpui_platform::application;
-use hegeldt::config::Config;
+use hegel_core::config::Config;
 
 actions!(hegeldt, [Quit]);
 
@@ -21,7 +23,7 @@ fn main() {
         .with_assets(assets::Assets)
         .run(move |cx: &mut App| {
             cx.on_action(|_: &Quit, cx| cx.quit());
-            cx.bind_keys([KeyBinding::new("cmd-q", Quit, None)]);
+            cx.bind_keys([KeyBinding::new("secondary-q", Quit, None)]);
             cx.set_menus(vec![Menu {
                 name: "Hegel Remote".into(),
                 items: vec![MenuItem::action("Quit Hegel Remote", Quit)],
@@ -58,7 +60,7 @@ fn main() {
             })
             .detach();
             cx.activate(true);
-            if menu_bar {
+            if menu_bar && menubar::SUPPORTED {
                 // Outside GPUI's borrow of the app, see the `menubar` docs.
                 cx.spawn(async move |_| menubar::set_enabled(true)).detach();
             }

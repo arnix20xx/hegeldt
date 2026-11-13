@@ -2,9 +2,9 @@ use std::time::Duration;
 
 use futures::StreamExt;
 use futures::channel::mpsc::UnboundedReceiver;
-use hegeldt::connection::{AmpConnection, AmpEvent};
-use hegeldt::mock::MockServer;
-use hegeldt::protocol::{Command, Param, Status};
+use hegel_core::connection::{AmpConnection, AmpEvent};
+use hegel_core::mock::MockServer;
+use hegel_core::protocol::{Command, Param, Status};
 
 fn next(rx: &mut UnboundedReceiver<AmpEvent>) -> AmpEvent {
     futures::executor::block_on(async {

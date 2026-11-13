@@ -1,0 +1,57 @@
+# UNTESTED until first run: the repository had no GitHub remote when this was written, and the
+# Linux and Windows builds have never been run anywhere. Expect to iterate on this file.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      # System packages GPUI needs on Linux (a subset of zed's script/linux: windowing, fonts,
+      # keyboard, Vulkan, and a C/C++ toolchain for freetype-sys and friends).
+      - name: Install Linux packages
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential pkg-config \
+            libfontconfig-dev \
+            libwayland-dev \
+            libx11-xcb-dev \
+            libxkbcommon-dev \
+            libxkbcommon-x11-dev \
+            libvulkan1
+
+      - name: Check (fmt, clippy, tests)
+        run: cargo xtask check
+
+      - name: Package
+        run: cargo xtask dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hegel-remote-${{ matrix.os }}
+          path: |
+            target/dist/*.zip
+            target/dist/*.dmg
+            target/dist/*.tar.gz
+          if-no-files-found: error

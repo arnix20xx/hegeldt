@@ -1,6 +1,7 @@
 [workspace]
-members = [".", "xtask"]
-default-members = ["."]
+members = [".", "crates/hegel-core", "xtask"]
+# `cargo run --bin mock_amp`, `cargo test` etc. cover the app and the core crate.
+default-members = [".", "crates/hegel-core"]
 resolver = "3"
 
 [package]
@@ -8,32 +9,31 @@ name = "hegeldt"
 version = "0.1.0"
 edition = "2024"
 
-[lib]
-name = "hegeldt"
-path = "src/lib.rs"
-
 [[bin]]
 name = "hegeldt"
 path = "src/main.rs"
 
-[[bin]]
-name = "mock_amp"
-path = "src/bin/mock_amp.rs"
-
 [dependencies]
+hegel-core = { path = "crates/hegel-core" }
 gpui = { git = "https://github.com/zed-industries/zed", rev = "1e9987dcca966d116158a12d7e75e5b6732f14ac" }
-gpui_platform = { git = "https://github.com/zed-industries/zed", rev = "1e9987dcca966d116158a12d7e75e5b6732f14ac", features = ["font-kit"] }
+gpui_platform = { git = "https://github.com/zed-industries/zed", rev = "1e9987dcca966d116158a12d7e75e5b6732f14ac" }
 anyhow = "1"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-dirs = "6"
 futures = "0.3"
 log = "0.4"
 
+# Per-platform GPUI backends (Zed itself enables the same features).
 [target.'cfg(target_os = "macos")'.dependencies]
+gpui_platform = { git = "https://github.com/zed-industries/zed", rev = "1e9987dcca966d116158a12d7e75e5b6732f14ac", features = ["font-kit"] }
 # Same versions gpui_macos uses, so nothing new is pulled in.
 objc = "0.2"
 cocoa = "=0.26.0"
+
+[target.'cfg(any(target_os = "linux", target_os = "freebsd"))'.dependencies]
+gpui_platform = { git = "https://github.com/zed-industries/zed", rev = "1e9987dcca966d116158a12d7e75e5b6732f14ac", features = ["wayland", "x11"] }
+
+# Embeds assets/AppIcon.ico into hegeldt.exe (build.rs; needs a resource compiler, i.e. MSVC).
+[target.'cfg(windows)'.build-dependencies]
+embed-resource = "3.0"
 
 # objc 0.2's msg_send! checks a `cargo-clippy` feature in the calling crate.
 [lints.rust]

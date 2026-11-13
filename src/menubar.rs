@@ -14,6 +14,10 @@
 
 use std::sync::atomic::{AtomicBool, Ordering};
 
+/// Whether this platform has a menu bar mode. On other platforms every function in this module
+/// is a no-op and the setting is hidden in the UI (the config field is kept for compatibility).
+pub const SUPPORTED: bool = cfg!(target_os = "macos");
+
 static ENABLED: AtomicBool = AtomicBool::new(false);
 
 /// Whether the menu bar mode is currently active.
