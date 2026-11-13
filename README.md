@@ -4,6 +4,26 @@ A desktop remote for Hegel amplifiers (H95, H120, H190, H390, H590, Röst), writ
 with [GPUI](https://github.com/zed-industries/zed). It speaks the amplifier's IP control protocol
 (TCP port 50001) and is modelled on the HegelRemote Android app.
 
+This is an unofficial hobby project. It is not affiliated with or endorsed by Hegel Music
+Systems.
+
+## Project status: take it and run with it
+
+This repository is shared as-is, as a starting point for anyone who wants a desktop remote for
+their Hegel amplifier. It is not an actively maintained project.
+
+* **Fork it.** If you want to change, fix or extend something, fork the repository and work in
+  your own copy. You do not need to ask.
+* **No support.** I do not track bug reports or feature requests, and I do not review or merge
+  pull requests. Issues and pull requests opened here will most likely go unanswered.
+* **No promises.** It works for me with an H390 on macOS. The other models use the input tables
+  from the Android app and are untested here; Linux and Windows are prepared but have never been
+  built or run (see [Platforms](#platforms)).
+* **Builds.** There are no official releases. Build it yourself with `cargo xtask dist` (see
+  [Distribution](#distribution)).
+
+If you make something better out of it, feel free to share your fork with the other users.
+
 ## Build and run
 
 ```sh
@@ -114,8 +134,9 @@ Known gaps:
 * Window sizing, fonts, key handling and the SSDP socket code are untested off macOS.
 
 To try it: on a Linux or Windows machine with the prerequisites above, `cargo xtask check` and
-`cargo xtask dist`, or `cargo run`; or push to GitHub and let the (equally untested)
-`.github/workflows/ci.yml` build all three platforms and upload the artifacts.
+`cargo xtask dist`, or `cargo run`; or run the (equally untested)
+`.github/workflows/ci.yml` workflow by hand from the repository's Actions tab ("Run workflow").
+It only runs when started manually, and builds all three platforms and uploads the artifacts.
 
 ## Menu bar mode (macOS only)
 

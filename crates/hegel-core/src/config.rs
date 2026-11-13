@@ -163,9 +163,9 @@ mod tests {
         c.save_to(&p).unwrap();
         assert!(Config::load_from(&p).menu_bar);
         // A config written before the setting existed still loads, with the default.
-        std::fs::write(&p, r#"{"host":"10.0.0.33","model":"H390","max_volume":50}"#).unwrap();
+        std::fs::write(&p, r#"{"host":"192.168.1.50","model":"H390","max_volume":50}"#).unwrap();
         let old = Config::load_from(&p);
-        assert_eq!(old.host.as_deref(), Some("10.0.0.33"));
+        assert_eq!(old.host.as_deref(), Some("192.168.1.50"));
         assert_eq!(old.max_volume, 50);
         assert!(!old.menu_bar);
         std::fs::remove_dir_all(p.parent().unwrap().parent().unwrap()).unwrap();
@@ -175,14 +175,14 @@ mod tests {
     fn apply_device_sets_host_and_known_model() {
         let mut c = Config::default();
         let mut d = DiscoveredDevice {
-            friendly_name: "H390_D36ED4".into(),
-            host: "10.0.0.33".into(),
+            friendly_name: "H390_ABC123".into(),
+            host: "192.168.1.50".into(),
             model: "H390".into(),
             manufacturer: "Hegel".into(),
         };
         c.model = AmpModel::H95;
         c.apply_device(&d);
-        assert_eq!(c.host.as_deref(), Some("10.0.0.33"));
+        assert_eq!(c.host.as_deref(), Some("192.168.1.50"));
         assert_eq!(c.model, AmpModel::H390);
         d.model = "Mystery".into();
         d.host = "10.0.0.5".into();
