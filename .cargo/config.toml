@@ -1,2 +1,9 @@
 [alias]
 xtask = "run --package xtask --"
+
+# GPUI pulls in `block` (via cocoa) and `proc-macro-error2` (via stacksafe), which trip cargo's
+# future-incompatibility notice on every build. Nothing in this repo can fix that; it goes away
+# when the pinned GPUI revision is bumped to one with updated dependencies.
+# See it on demand with: cargo report future-incompatibilities
+[future-incompat-report]
+frequency = "never"
